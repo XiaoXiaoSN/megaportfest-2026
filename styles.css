@@ -68,15 +68,20 @@ body {
   display: block;
 }
 
-.header-actions { display: flex; gap: 10px; }
+.header-actions { display: flex; gap: 12px; }
 
 .btn-icon {
   background: var(--surface);
   border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-sub);
-  padding: 8px 12px;
-  font-size: 0.8rem;
+  padding: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.1s;
