@@ -10,7 +10,9 @@ const ICONS = {
   chevronDown: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><polyline points="6 9 12 15 18 9"/></svg>`,
   chevronRight: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><polyline points="9 18 15 12 9 6"/></svg>`,
   chevronUp: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><polyline points="18 15 12 9 6 15"/></svg>`,
-  rock: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M18 12V10a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M14 10V3a2 2 0 0 0-2-2 2 2 0 0 0-2 2v11"/><path d="M10 14V9a2 2 0 0 0-2-2 2 2 0 0 0-2 2v5"/><path d="M6 14v-1a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4v-7"/><path d="m14.5 18.5 2 2"/></svg>`
+  rock: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M18 12V10a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M14 10V3a2 2 0 0 0-2-2 2 2 0 0 0-2 2v11"/><path d="M10 14V9a2 2 0 0 0-2-2 2 2 0 0 0-2 2v5"/><path d="M6 14v-1a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4v-7"/><path d="m14.5 18.5 2 2"/></svg>`,
+  viewStage: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`,
+  viewTime: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`
 };
 
 // ─── state ───────────────────────────────────────────────────────
@@ -20,6 +22,7 @@ const state = {
   favOnly: false,
   showHidden: false,
   modalPerf: null,
+  viewMode: "stage",
 };
 
 const LS_FAV = "megaport_fav";
@@ -181,6 +184,11 @@ function renderMain() {
     return;
   }
 
+  if (state.viewMode === "time") {
+    renderMainByTime(perfs);
+    return;
+  }
+
   // group by stage
   const stageOrder = stagesForDate(state.date);
   const byStage = {};
@@ -248,11 +256,53 @@ function renderMain() {
   main.innerHTML = html;
 }
 
-function renderPerfRow(p, status) {
+function renderMainByTime(perfs) {
+  const main = document.getElementById("perf-list");
+  const sorted = [...perfs].sort((a, b) => {
+    const timeDiff = toMins(a.start) - toMins(b.start);
+    if (timeDiff !== 0) return timeDiff;
+    return (STAGES[a.stage]?.order ?? 99) - (STAGES[b.stage]?.order ?? 99);
+  });
+
+  let html = "";
+  const todayView = isToday(state.date);
+  const pastPerfs = sorted.filter(p => perfStatus(p) === "past");
+  const activePerfs = sorted.filter(p => perfStatus(p) !== "past");
+  const hasPast = todayView && pastPerfs.length > 0;
+  const pastExp = pastExpanded.has("__time_view__");
+
+  html += `<div class="time-view-section">`;
+
+  if (hasPast) {
+    html += `<div class="past-section ${pastExp ? "" : "collapsed"}">`;
+    pastPerfs.forEach(p => { html += renderPerfRow(p, "past", true); });
+    html += "</div>";
+    html += `<div class="past-toggle" data-past-toggle="__time_view__">
+          <div style="display:flex; align-items:center; justify-content:center; gap:8px">
+            ${pastExp ? ICONS.chevronUp : ICONS.chevronDown}
+            ${pastExp ? "HIDE FINISHED" : `SHOW FINISHED (${pastPerfs.length})`}
+          </div>
+        </div>`;
+  }
+
+  if (activePerfs.length === 0 && !hasPast) {
+    html += `<div class="all-past-msg">TODAY'S LINEUP IS FINISHED</div>`;
+  }
+  activePerfs.forEach(p => {
+    const status = perfStatus(p);
+    html += renderPerfRow(p, status, true);
+  });
+
+  html += `</div>`;
+  main.innerHTML = html;
+}
+
+function renderPerfRow(p, status, showStage = false) {
   const fav = isFav(p);
   const hid = isHidden(p);
   const id = escHtml(perfId(p));
   const isPlaying = status === "playing";
+  const stg = STAGES[p.stage] || {};
 
   return `<div class="perf-row ${status} ${hid ? "hidden-row" : ""}" data-perf="${id}">
     ${isPlaying ? `<div class="perf-status-dot"></div>` : ""}
@@ -262,7 +312,10 @@ function renderPerfRow(p, status) {
     </div>
     <div class="perf-info">
       <div class="perf-name">${escHtml(p.name)}</div>
-      ${p.tags?.length ? `<div class="perf-tags">${p.tags.map(t => `<span class="perf-tag">${escHtml(t)}</span>`).join("")}</div>` : ""}
+      <div style="display:flex; align-items:center; gap:8px">
+        ${showStage ? `<div class="perf-stage-label" style="background:${stg.color || "#888"}22; color:${stg.color || "#888"}; border:1px solid ${stg.color || "#888"}44; font-size:0.65rem; padding:1px 6px; border-radius:4px; font-weight:800; text-transform:uppercase">${escHtml(p.stage)}</div>` : ""}
+        ${p.tags?.length ? `<div class="perf-tags" style="margin:0">${p.tags.map(t => `<span class="perf-tag">${escHtml(t)}</span>`).join("")}</div>` : ""}
+      </div>
     </div>
     <div class="perf-actions">
       <button class="action-btn fav-btn ${fav ? "fav-active" : ""}"
@@ -467,10 +520,11 @@ document.addEventListener("click", e => {
   }
 
   // header fav-only toggle
-  if (t.id === "btn-fav") {
+  const bFav = t.closest("#btn-fav");
+  if (bFav) {
     state.favOnly = !state.favOnly;
     state.stageFilter = null;
-    t.classList.toggle("active", state.favOnly);
+    bFav.classList.toggle("active", state.favOnly);
     if (state.date !== "rolling") {
       renderFilter();
       renderMain();
@@ -479,9 +533,19 @@ document.addEventListener("click", e => {
   }
 
   // header show-hidden toggle
-  if (t.id === "btn-hidden") {
+  const bHidden = t.closest("#btn-hidden");
+  if (bHidden) {
     state.showHidden = !state.showHidden;
-    t.classList.toggle("active", state.showHidden);
+    bHidden.classList.toggle("active", state.showHidden);
+    if (state.date !== "rolling") renderMain();
+    return;
+  }
+
+  // header view-mode toggle
+  const bViewMode = t.closest("#btn-view-mode");
+  if (bViewMode) {
+    state.viewMode = state.viewMode === "stage" ? "time" : "stage";
+    renderViewToggle();
     if (state.date !== "rolling") renderMain();
     return;
   }
@@ -518,8 +582,16 @@ function renderDateTabs() {
     </div>`;
 }
 
+function renderViewToggle() {
+  const btn = document.getElementById("btn-view-mode");
+  if (!btn) return;
+  btn.innerHTML = state.viewMode === "stage" ? ICONS.viewTime : ICONS.viewStage;
+  btn.title = state.viewMode === "stage" ? "CHRONOLOGICAL" : "BY STAGE";
+}
+
 function renderAll() {
   renderDateTabs();
+  renderViewToggle();
   if (state.date === "rolling") {
     document.body.classList.add("rolling-view");
     document.getElementById("now-next").innerHTML = "";

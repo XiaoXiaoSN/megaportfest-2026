@@ -95,6 +95,28 @@ body {
   box-shadow: 2px 2px 0px var(--accent);
 }
 
+/* floating action button */
+.fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+  z-index: 100;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 4px 4px 0px var(--border), 0 4px 12px rgba(0,0,0,0.4);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fab:active { transform: scale(0.9) translate(2px, 2px); box-shadow: 2px 2px 0px var(--border); }
+.fab svg { width: 24px; height: 24px; }
+
 /* date tabs */
 .date-tabs {
   display: flex;
@@ -545,6 +567,7 @@ body {
 
 /* ─── rolling!! view ─────────────────────────────────────────── */
 body.rolling-view .stage-filter-wrap { display: none; }
+body.rolling-view #btn-view-mode { display: none; }
 body.rolling-view #main { padding-top: calc(var(--header-h) + 12px); }
 
 .rolling-clock {
