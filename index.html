@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>大港開唱 2026</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#08080a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MEGAPORT">
+  <link rel="apple-touch-icon" href="./icon.svg">
+
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+  <!-- fixed header -->
+  <div id="header">
+    <div class="header-top">
+      <div class="header-title">MEGAPORT FEST 2026</div>
+      <div class="header-actions">
+        <button class="btn-icon" id="btn-fav" title="SHOW FAVORITES" style="display:flex; align-items:center; gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+        </button>
+        <button class="btn-icon" id="btn-hidden" title="SHOW HIDDEN" style="display:flex; align-items:center; gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="date-tabs" id="date-tabs"></div>
+  </div>
+
+  <!-- sticky stage filter -->
+  <div class="stage-filter-wrap">
+    <div class="stage-filter" id="stage-filter"></div>
+  </div>
+
+  <!-- scrollable content (now-next banner + stage list) -->
+  <div id="main">
+    <div id="now-next"></div>
+    <div id="perf-list"></div>
+  </div>
+
+  <!-- modal overlay -->
+  <div class="modal-overlay" id="modal-overlay"></div>
+
+  <script src="./data.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
