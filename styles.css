@@ -529,3 +529,113 @@ body {
   70% { transform: scale(1.1); opacity: 0.8; box-shadow: 0 0 0 10px rgba(0, 255, 159, 0); }
   100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(0, 255, 159, 0); }
 }
+
+/* ─── rolling!! tab ──────────────────────────────────────────── */
+.date-tab.rolling-tab.active {
+  background: var(--now);
+  border-color: var(--now);
+  color: #000;
+  box-shadow: 3px 3px 0px rgba(0, 255, 159, 0.4);
+}
+
+/* ─── rolling!! view ─────────────────────────────────────────── */
+body.rolling-view .stage-filter-wrap { display: none; }
+body.rolling-view #main { padding-top: calc(var(--header-h) + 12px); }
+
+.rolling-clock {
+  text-align: center;
+  font-size: 3.5rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  padding: 20px 16px 8px;
+  color: var(--now);
+  text-shadow: 0 0 30px rgba(0, 255, 159, 0.4);
+}
+
+.rolling-card {
+  margin: 0 16px 16px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.rolling-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--surface2);
+  border-bottom: 2px solid var(--border);
+}
+
+.rolling-stage-dot {
+  width: 12px; height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.rolling-stage-name {
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.rolling-stage-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rolling-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.rolling-row:last-child { border-bottom: none; }
+.rolling-row:active { background: var(--surface2); }
+
+.rolling-badge {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 56px;
+  justify-content: center;
+}
+
+.rolling-badge.live {
+  background: rgba(0, 255, 159, 0.15);
+  color: var(--now);
+  border: 1px solid rgba(0, 255, 159, 0.3);
+  animation: pulse 2s infinite;
+}
+
+.rolling-badge.up {
+  background: rgba(0, 242, 255, 0.1);
+  color: var(--accent);
+  border: 1px solid rgba(0, 242, 255, 0.25);
+}
+
+.rolling-perf-info { flex: 1; min-width: 0; }
+
+.rolling-perf-name {
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.rolling-perf-time {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
