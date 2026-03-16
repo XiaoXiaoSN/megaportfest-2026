@@ -1,5 +1,5 @@
 // festival stage metadata
-const STAGES = {
+export const STAGES = {
   "南霸天":  { color: "#4ade80", label: "South Stage",       order: 1 },
   "海龍王":  { color: "#c084fc", label: "Dragon King Stage", order: 2 },
   "女神龍":  { color: "#f472b6", label: "Goddess Dragon",    order: 3 },
@@ -13,7 +13,7 @@ const STAGES = {
 };
 
 // all performances for both days
-const PERFORMANCES = [
+export const PERFORMANCES = [
 
   // ─── 2026-03-21  南霸天 ───────────────────────────────────
   { date: "2026-03-21", stage: "南霸天", name: "椅子樂團",

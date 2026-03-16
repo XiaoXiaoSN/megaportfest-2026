@@ -1,3 +1,5 @@
+import { STAGES, PERFORMANCES } from './data.js';
+
 // ─── icons ──────────────────────────────────────────────────────
 const ICONS = {
   bolt: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M13 2L3 14H12V22L22 10H13V2Z"/></svg>`,
@@ -700,13 +702,6 @@ setInterval(() => {
     renderMain();
   }
 }, 60_000);
-
-// ─── PWA service worker ───────────────────────────────────────────
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => { });
-  });
-}
 
 // ─── dynamic header height ───────────────────────────────────────
 function updateHeaderHeight() {

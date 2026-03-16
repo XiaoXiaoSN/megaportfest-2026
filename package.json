@@ -1,0 +1,15 @@
+{
+  "name": "megaportfest-2026",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^8.0.0",
+    "vite-plugin-pwa": "^1.2.0"
+  }
+}
