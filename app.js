@@ -65,6 +65,12 @@ function isFestivalPeriod() {
   return now >= new Date("2026-03-21T00:00:00") && now <= new Date("2026-03-22T23:59:59");
 }
 
+function isUpcomingPeriod() {
+  const now = new Date();
+  // 2026-03-20T00:00:00 ~ 2026-03-20T23:59:59 (Full day before festival)
+  return now >= new Date("2026-03-20T00:00:00") && now <= new Date("2026-03-20T23:59:59");
+}
+
 function perfStatus(p) {
   if (!isToday(p.date)) return "normal";
   const now = nowMins();
@@ -572,7 +578,11 @@ function toggleHidden(p) {
 // ─── full render cycle ────────────────────────────────────────────
 function renderDateTabs() {
   const showRolling = isFestivalPeriod();
+  const showUpcoming = isUpcomingPeriod();
   document.getElementById("date-tabs").innerHTML = `
+    ${showUpcoming ? `<div class="date-tab rolling-tab ${state.date === "upcoming" ? "active" : ""}" data-date="upcoming">
+      Upcoming<span class="day-label">TOMORROW</span>
+    </div>` : ""}
     ${showRolling ? `<div class="date-tab rolling-tab ${state.date === "rolling" ? "active" : ""}" data-date="rolling">
       Rolling!!<span class="day-label">NOW</span>
     </div>` : ""}
@@ -594,10 +604,14 @@ function renderViewToggle() {
 function renderAll() {
   renderDateTabs();
   renderViewToggle();
-  if (state.date === "rolling") {
+  if (state.date === "rolling" || state.date === "upcoming") {
     document.body.classList.add("rolling-view");
     document.getElementById("now-next").innerHTML = "";
-    renderRolling();
+    if (state.date === "rolling") {
+      renderRolling();
+    } else {
+      renderRolling("2026-03-21", false);
+    }
     return;
   }
   document.body.classList.remove("rolling-view");
@@ -606,23 +620,30 @@ function renderAll() {
   renderMain();
 }
 
-function renderRolling() {
+function renderRolling(targetDate = todayStr(), isRolling = true) {
   const now = new Date();
   const h = String(now.getHours()).padStart(2, "0");
   const m = String(now.getMinutes()).padStart(2, "0");
   const timeStr = `${h}:${m}`;
 
-  const todayDate = todayStr();
-  const todayPerfs = perfsForDate(todayDate);
-  const stages = stagesForDate(todayDate);
+  const todayPerfs = perfsForDate(targetDate);
+  const stages = stagesForDate(targetDate);
 
   const entries = [];
   stages.forEach(stageName => {
     const sp = todayPerfs
       .filter(p => p.stage === stageName)
       .sort((a, b) => toMins(a.start) - toMins(b.start));
-    const playing = sp.find(p => perfStatus(p) === "playing");
-    const next = sp.find(p => toMins(p.start) > nowMins());
+    
+    let playing, next;
+    if (isRolling) {
+      playing = sp.find(p => perfStatus(p) === "playing");
+      next = sp.find(p => toMins(p.start) > nowMins());
+    } else {
+      playing = null;
+      next = sp[0];
+    }
+    
     if (playing || next) {
       const sortTime = playing ? toMins(playing.start) : toMins(next.start);
       entries.push({ stageName, playing, next, sortTime });
@@ -631,6 +652,9 @@ function renderRolling() {
   entries.sort((a, b) => a.sortTime - b.sortTime);
 
   let html = `<div class="rolling-clock">${timeStr}</div>`;
+  if (!isRolling) {
+    html += `<div style="text-align:center; font-weight:800; color:var(--accent); margin-bottom:20px; font-size:0.8rem; letter-spacing:0.1em; text-transform:uppercase">Lineup for tomorrow</div>`;
+  }
 
   if (!entries.length) {
     html += `<div class="empty-state">${ICONS.rock}<div style="font-weight:900; margin-top:10px; font-size:1.2rem; color:var(--text-sub)">ALL DONE FOR TODAY</div></div>`;
@@ -656,10 +680,10 @@ function renderRolling() {
 
       if (next) {
         html += `<div class="rolling-row rolling-next" data-perf="${escHtml(perfId(next))}">
-          <div class="rolling-badge up">${fmtTime(next.start)}</div>
+          <div class="rolling-badge up">${isRolling ? fmtTime(next.start) : "START " + fmtTime(next.start)}</div>
           <div class="rolling-perf-info">
             <div class="rolling-perf-name">${escHtml(next.name)}</div>
-            <div class="rolling-perf-time">– ${fmtTime(next.end)}</div>
+            <div class="rolling-perf-time">${isRolling ? "– " + fmtTime(next.end) : fmtTime(next.start) + " – " + fmtTime(next.end)}</div>
           </div>
         </div>`;
       }
@@ -685,6 +709,8 @@ function initDate() {
   const today = todayStr();
   if (today === "2026-03-21" || today === "2026-03-22") {
     state.date = today;
+  } else if (isUpcomingPeriod()) {
+    state.date = "upcoming";
   } else {
     // pre/post festival: default to 3/21
     state.date = "2026-03-21";
@@ -693,8 +719,12 @@ function initDate() {
 
 // ─── live clock refresh (on festival day) ────────────────────────
 setInterval(() => {
-  if (state.date === "rolling") {
-    renderRolling();
+  if (state.date === "rolling" || state.date === "upcoming") {
+    if (state.date === "rolling") {
+      renderRolling();
+    } else {
+      renderRolling("2026-03-21", false);
+    }
     return;
   }
   if (isToday(state.date)) {
