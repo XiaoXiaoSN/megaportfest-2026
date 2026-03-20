@@ -448,12 +448,27 @@ body {
   flex-direction: column;
   transform: translateY(100%);
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  /* disable selecting content while swiping */
+  user-select: none;
+  -webkit-user-select: none;
 }
 .modal-overlay.open .modal-sheet { transform: translateY(0); }
+
+.modal-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 12px auto;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
 
 .modal-scroll {
   overflow-y: auto;
   padding: 24px 24px 40px;
+  user-select: text; /* allow text selection within scrollable area */
+  -webkit-user-select: text;
 }
 
 .modal-stage-badge {

@@ -367,7 +367,7 @@ function renderModal(p) {
 
   document.getElementById("modal-overlay").innerHTML = `
     <div class="modal-sheet" id="modal-sheet">
-      <div style="width:40px; height:4px; background:var(--border); border-radius:2px; margin:12px auto; flex-shrink:0"></div>
+      <div class="modal-handle"></div>
       <div class="modal-scroll">
         <div class="modal-stage-badge"
              style="background:${stg.color || "#888"}22; border:2px solid ${stg.color || "#888"}88; color:${stg.color || "#888"}">
@@ -407,20 +407,86 @@ function varToHex(v) {
 }
 
 // ─── open / close modal ──────────────────────────────────────────
+let touchStartY = 0;
+let touchCurrentY = 0;
+let isDragging = false;
+
 function openModal(p) {
   state.modalPerf = p;
   renderModal(p);
   const overlay = document.getElementById("modal-overlay");
   overlay.classList.add("open");
+  overlay.style.background = ""; // Reset in case left from previous swipe
   document.body.style.overflow = "hidden";
 }
 
 function closeModal() {
   state.modalPerf = null;
   const overlay = document.getElementById("modal-overlay");
+  const sheet = document.getElementById("modal-sheet");
+  if (sheet) sheet.style.transform = "";
+  overlay.style.background = "";
   overlay.classList.remove("open");
   document.body.style.overflow = "";
 }
+
+// ─── modal swipe-to-close logic ───────────────────────────────────
+document.addEventListener("touchstart", e => {
+  const sheet = e.target.closest(".modal-sheet");
+  if (!sheet || !state.modalPerf) return;
+
+  // Only allow swipe down if we're at the top of the scrollable content
+  const scrollContainer = sheet.querySelector(".modal-scroll");
+  if (scrollContainer && scrollContainer.scrollTop <= 0) {
+    touchStartY = e.touches[0].clientY;
+    touchCurrentY = touchStartY;
+    isDragging = true;
+    sheet.style.transition = "none";
+  }
+}, { passive: true });
+
+document.addEventListener("touchmove", e => {
+  if (!isDragging) return;
+
+  const sheet = document.getElementById("modal-sheet");
+  if (!sheet) return;
+
+  touchCurrentY = e.touches[0].clientY;
+  const deltaY = touchCurrentY - touchStartY;
+
+  if (deltaY <= 0) {
+    // If swiping up, cancel dragging to allow normal scrolling
+    isDragging = false;
+    sheet.style.transition = "";
+    sheet.style.transform = "";
+    return;
+  }
+
+  // Handle swiping down
+  sheet.style.transform = `translateY(${deltaY}px)`;
+  const overlay = document.getElementById("modal-overlay");
+  const opacity = 1 - Math.min(deltaY / 600, 0.5);
+  overlay.style.background = `rgba(0,0,0,${0.85 * opacity})`;
+}, { passive: true });
+
+document.addEventListener("touchend", () => {
+  if (!isDragging) return;
+  isDragging = false;
+
+  const sheet = document.getElementById("modal-sheet");
+  if (!sheet) return;
+
+  sheet.style.transition = ""; // Restore CSS transition
+  const deltaY = touchCurrentY - touchStartY;
+
+  if (deltaY > 100) {
+    closeModal();
+  } else {
+    sheet.style.transform = "";
+    const overlay = document.getElementById("modal-overlay");
+    overlay.style.background = "";
+  }
+});
 
 // ─── perf lookup ─────────────────────────────────────────────────
 function findPerf(id) {
