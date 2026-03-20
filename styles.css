@@ -567,7 +567,6 @@ body {
 
 /* ─── rolling!! view ─────────────────────────────────────────── */
 body.rolling-view .stage-filter-wrap { display: none; }
-body.rolling-view #btn-view-mode { display: none; }
 body.rolling-view #main { padding-top: calc(var(--header-h) + 12px); }
 
 .rolling-clock {
@@ -666,4 +665,16 @@ body.rolling-view #main { padding-top: calc(var(--header-h) + 12px); }
   font-size: 0.72rem;
   color: var(--text-dim);
   margin-top: 2px;
+}
+
+.time-view-section { padding-top: 10px; }
+
+.all-past-msg {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-dim);
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }

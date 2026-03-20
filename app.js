@@ -163,7 +163,7 @@ function renderFilter() {
   const stages = stagesForDate(state.date);
   const container = document.getElementById("stage-filter");
   let html = `<div class="stage-pill all ${!state.stageFilter && !state.favOnly ? "active" : ""}"
-                   data-stage="">ALL STAGES</div>`;
+                   data-stage="">ALL</div>`;
   stages.forEach(name => {
     const stg = STAGES[name] || {};
     const active = state.stageFilter === name;
@@ -449,8 +449,7 @@ document.addEventListener("click", e => {
     const stage = pill.dataset.stage;
     state.stageFilter = stage || null;
     if (!stage) state.favOnly = false;
-    renderFilter();
-    renderMain();
+    refreshContent();
     // add tapped to the freshly rendered pill (old element was replaced by renderFilter)
     const newPill = document.querySelector(`.stage-pill[data-stage="${stage}"]`);
     if (newPill) {
@@ -465,7 +464,7 @@ document.addEventListener("click", e => {
   if (favBtn && !t.closest(".modal-overlay")) {
     e.stopPropagation();
     const p = findPerf(favBtn.dataset.fav);
-    if (p) { toggleFav(p); renderMain(); }
+    if (p) { toggleFav(p); refreshContent(); }
     return;
   }
 
@@ -474,7 +473,7 @@ document.addEventListener("click", e => {
   if (hideBtn && !t.closest(".modal-overlay")) {
     e.stopPropagation();
     const p = findPerf(hideBtn.dataset.hide);
-    if (p) { toggleHidden(p); renderMain(); }
+    if (p) { toggleHidden(p); refreshContent(); }
     return;
   }
 
@@ -483,7 +482,7 @@ document.addEventListener("click", e => {
   if (toggleHdr) {
     const name = toggleHdr.dataset.toggle;
     collapsedStages.has(name) ? collapsedStages.delete(name) : collapsedStages.add(name);
-    renderMain();
+    refreshContent();
     return;
   }
 
@@ -492,7 +491,7 @@ document.addEventListener("click", e => {
   if (pastToggle) {
     const name = pastToggle.dataset.pastToggle;
     pastExpanded.has(name) ? pastExpanded.delete(name) : pastExpanded.add(name);
-    renderMain();
+    refreshContent();
     return;
   }
 
@@ -515,7 +514,7 @@ document.addEventListener("click", e => {
   if (mFav && state.modalPerf) {
     toggleFav(state.modalPerf);
     renderModal(state.modalPerf);
-    renderMain();
+    refreshContent();
     return;
   }
 
@@ -523,7 +522,7 @@ document.addEventListener("click", e => {
   if (mHide && state.modalPerf) {
     toggleHidden(state.modalPerf);
     renderModal(state.modalPerf);
-    renderMain();
+    refreshContent();
     return;
   }
 
@@ -533,10 +532,7 @@ document.addEventListener("click", e => {
     state.favOnly = !state.favOnly;
     state.stageFilter = null;
     bFav.classList.toggle("active", state.favOnly);
-    if (state.date !== "rolling") {
-      renderFilter();
-      renderMain();
-    }
+    refreshContent();
     return;
   }
 
@@ -545,7 +541,7 @@ document.addEventListener("click", e => {
   if (bHidden) {
     state.showHidden = !state.showHidden;
     bHidden.classList.toggle("active", state.showHidden);
-    if (state.date !== "rolling") renderMain();
+    refreshContent();
     return;
   }
 
@@ -554,7 +550,7 @@ document.addEventListener("click", e => {
   if (bViewMode) {
     state.viewMode = state.viewMode === "stage" ? "time" : "stage";
     renderViewToggle();
-    if (state.date !== "rolling") renderMain();
+    refreshContent();
     return;
   }
 });
@@ -604,13 +600,24 @@ function renderViewToggle() {
 function renderAll() {
   renderDateTabs();
   renderViewToggle();
+  refreshContent();
+}
+
+function refreshContent() {
   if (state.date === "rolling" || state.date === "upcoming") {
     document.body.classList.add("rolling-view");
     document.getElementById("now-next").innerHTML = "";
-    if (state.date === "rolling") {
-      renderRolling();
+    
+    const targetDate = state.date === "rolling" ? todayStr() : "2026-03-21";
+    const activePerfs = getActiveRollingPerfs(targetDate, state.date === "rolling");
+
+    if (state.viewMode === "time") {
+      renderMainByTime(activePerfs);
+      // Prepend the rolling header (clock + label)
+      const list = document.getElementById("perf-list");
+      list.insertAdjacentHTML("afterbegin", renderRollingHeaderHtml(state.date === "rolling"));
     } else {
-      renderRolling("2026-03-21", false);
+      renderRollingWithActive(targetDate, activePerfs, state.date === "rolling");
     }
     return;
   }
@@ -620,33 +627,96 @@ function renderAll() {
   renderMain();
 }
 
+function renderRollingHeaderHtml(isRolling) {
+  const now = new Date();
+  const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  let html = `<div class="rolling-clock">${timeStr}</div>`;
+  if (!isRolling) {
+    html += `<div style="text-align:center; font-weight:800; color:var(--accent); margin-bottom:20px; font-size:0.8rem; letter-spacing:0.1em; text-transform:uppercase">Lineup for tomorrow</div>`;
+  }
+  return html;
+}
+
+function getActiveRollingPerfs(targetDate, isRolling) {
+  const perfs = filteredPerfs(targetDate);
+  const stages = stagesForDate(targetDate);
+  let activeTotal = [];
+
+  stages.forEach(stageName => {
+    const sp = perfs
+      .filter(p => p.stage === stageName)
+      .filter(p => state.showHidden || !isHidden(p))
+      .sort((a, b) => toMins(a.start) - toMins(b.start));
+    
+    let active;
+    if (isRolling) {
+      active = sp.filter(p => perfStatus(p) !== "past").slice(0, 2);
+    } else {
+      active = sp.slice(0, 2);
+    }
+    activeTotal = activeTotal.concat(active);
+  });
+  return activeTotal;
+}
+
+function renderRollingWithActive(targetDate, activeTotal, isRolling) {
+  // Group back by stage for the stage view, but only including the active ones
+  const stages = stagesForDate(targetDate);
+  const entries = [];
+  stages.forEach(stageName => {
+    const active = activeTotal.filter(p => p.stage === stageName);
+    if (active.length) {
+      entries.push({ stageName, active, sortTime: toMins(active[0].start) });
+    }
+  });
+  entries.sort((a, b) => a.sortTime - b.sortTime);
+
+  let html = renderRollingHeaderHtml(isRolling);
+
+  if (!entries.length) {
+    html += `<div class="empty-state">${ICONS.rock}<div style="font-weight:900; margin-top:10px; font-size:1.2rem; color:var(--text-sub)">NO SHOWS FOUND</div></div>`;
+  } else {
+    entries.forEach(({ stageName, active }) => {
+      const stg = STAGES[stageName] || {};
+      html += `<div class="rolling-card" style="border-left: 4px solid ${stg.color || "#888"}; margin-bottom: 12px;">`;
+      active.forEach(p => {
+        const isPlaying = perfStatus(p) === "playing";
+        html += renderRollingRow(p, isPlaying, isRolling);
+      });
+      html += `</div>`;
+    });
+  }
+  document.getElementById("perf-list").innerHTML = html;
+}
+
 function renderRolling(targetDate = todayStr(), isRolling = true) {
   const now = new Date();
   const h = String(now.getHours()).padStart(2, "0");
   const m = String(now.getMinutes()).padStart(2, "0");
   const timeStr = `${h}:${m}`;
 
-  const todayPerfs = perfsForDate(targetDate);
+  const todayPerfs = filteredPerfs(targetDate);
   const stages = stagesForDate(targetDate);
 
   const entries = [];
   stages.forEach(stageName => {
     const sp = todayPerfs
       .filter(p => p.stage === stageName)
+      .filter(p => state.showHidden || !isHidden(p))
       .sort((a, b) => toMins(a.start) - toMins(b.start));
     
-    let playing, next;
+    let active;
     if (isRolling) {
-      playing = sp.find(p => perfStatus(p) === "playing");
-      next = sp.find(p => toMins(p.start) > nowMins());
+      // 在現場模式下，取出尚未結束的前兩場 (可能是 正在進行+下一場 或 下一場+下下一場)
+      active = sp.filter(p => perfStatus(p) !== "past").slice(0, 2);
     } else {
-      playing = null;
-      next = sp[0];
+      // 在預告模式下，直接取當天前兩場
+      active = sp.slice(0, 2);
     }
     
-    if (playing || next) {
-      const sortTime = playing ? toMins(playing.start) : toMins(next.start);
-      entries.push({ stageName, playing, next, sortTime });
+    if (active.length) {
+      const sortTime = toMins(active[0].start);
+      entries.push({ stageName, active, sortTime });
     }
   });
   entries.sort((a, b) => a.sortTime - b.sortTime);
@@ -657,43 +727,52 @@ function renderRolling(targetDate = todayStr(), isRolling = true) {
   }
 
   if (!entries.length) {
-    html += `<div class="empty-state">${ICONS.rock}<div style="font-weight:900; margin-top:10px; font-size:1.2rem; color:var(--text-sub)">ALL DONE FOR TODAY</div></div>`;
+    html += `<div class="empty-state">${ICONS.rock}<div style="font-weight:900; margin-top:10px; font-size:1.2rem; color:var(--text-sub)">NO SHOWS FOUND</div></div>`;
   } else {
-    entries.forEach(({ stageName, playing, next }) => {
+    entries.forEach(({ stageName, active }) => {
       const stg = STAGES[stageName] || {};
-      html += `<div class="rolling-card">
-        <div class="rolling-card-header" style="border-left: 4px solid ${stg.color || "#888"}">
-          <div class="rolling-stage-dot" style="background:${stg.color || "#888"}; box-shadow: 0 0 8px ${stg.color || "#888"}aa"></div>
-          <span class="rolling-stage-name">${escHtml(stageName)}</span>
-          <span class="rolling-stage-label">${stg.label || ""}</span>
-        </div>`;
-
-      if (playing) {
-        html += `<div class="rolling-row rolling-now" data-perf="${escHtml(perfId(playing))}">
-          <div class="rolling-badge live">${ICONS.bolt} LIVE</div>
-          <div class="rolling-perf-info">
-            <div class="rolling-perf-name">${escHtml(playing.name)}</div>
-            <div class="rolling-perf-time">${fmtTime(playing.start)} – ${fmtTime(playing.end)}</div>
-          </div>
-        </div>`;
-      }
-
-      if (next) {
-        html += `<div class="rolling-row rolling-next" data-perf="${escHtml(perfId(next))}">
-          <div class="rolling-badge up">${isRolling ? fmtTime(next.start) : "START " + fmtTime(next.start)}</div>
-          <div class="rolling-perf-info">
-            <div class="rolling-perf-name">${escHtml(next.name)}</div>
-            <div class="rolling-perf-time">${isRolling ? "– " + fmtTime(next.end) : fmtTime(next.start) + " – " + fmtTime(next.end)}</div>
-          </div>
-        </div>`;
-      }
-
+      html += `<div class="rolling-card" style="border-left: 4px solid ${stg.color || "#888"}; margin-bottom: 12px;">`;
+      active.forEach(p => {
+        const isPlaying = perfStatus(p) === "playing";
+        html += renderRollingRow(p, isPlaying, isRolling);
+      });
       html += `</div>`;
     });
   }
 
   document.getElementById("perf-list").innerHTML = html;
 }
+
+function renderRollingRow(p, isPlaying, isRolling) {
+  const fav = isFav(p);
+  const hid = isHidden(p);
+  const id = escHtml(perfId(p));
+  const stg = STAGES[p.stage] || {};
+
+  const badgeHtml = isPlaying 
+    ? `<div class="rolling-badge live">${ICONS.bolt} LIVE</div>`
+    : `<div class="rolling-badge up">${isRolling ? fmtTime(p.start) : "START " + fmtTime(p.start)}</div>`;
+
+  return `<div class="perf-row ${isPlaying ? "playing" : "upcoming"} ${hid ? "hidden-row" : ""}" data-perf="${id}">
+    <div style="width: 110px; flex-shrink: 0; display: flex; align-items: center; margin-right: 12px;">
+      ${badgeHtml}
+    </div>
+    <div class="perf-info">
+      <div class="perf-name" style="font-size: 1.1rem; line-height: 1.2; margin-bottom: 4px;">${escHtml(p.name)}</div>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+        <div class="perf-stage-label" style="background:${stg.color || "#888"}22; color:${stg.color || "#888"}; border:1px solid ${stg.color || "#888"}44; font-size:0.65rem; padding:1px 6px; border-radius:4px; font-weight:800; text-transform:uppercase">${escHtml(p.stage)}</div>
+        ${p.tags?.length ? `<div class="perf-tags" style="margin:0">${p.tags.map(t => `<span class="perf-tag">${escHtml(t)}</span>`).join("")}</div>` : ""}
+      </div>
+    </div>
+    <div class="perf-actions">
+      <button class="action-btn fav-btn ${fav ? "fav-active" : ""}"
+              data-fav="${id}" title="FAV" aria-label="FAV">
+        ${fav ? ICONS.star : ICONS.starOutline}
+      </button>
+    </div>
+  </div>`;
+}
+
 
 // ─── escape helper ────────────────────────────────────────────────
 function escHtml(s) {
@@ -719,18 +798,7 @@ function initDate() {
 
 // ─── live clock refresh (on festival day) ────────────────────────
 setInterval(() => {
-  if (state.date === "rolling" || state.date === "upcoming") {
-    if (state.date === "rolling") {
-      renderRolling();
-    } else {
-      renderRolling("2026-03-21", false);
-    }
-    return;
-  }
-  if (isToday(state.date)) {
-    renderNowNext();
-    renderMain();
-  }
+  refreshContent();
 }, 60_000);
 
 // ─── dynamic header height ───────────────────────────────────────
