@@ -488,6 +488,8 @@ body {
   color: var(--text-dim);
 }
 
+.past-section.collapsed { display: none; }
+
 .past-toggle {
   background: var(--surface2);
   padding: 12px;
@@ -495,6 +497,7 @@ body {
   font-size: 0.8rem;
   text-transform: uppercase;
   color: var(--text-dim);
+  cursor: pointer;
 }
 
 @keyframes pulse {
