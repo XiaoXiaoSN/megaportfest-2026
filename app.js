@@ -109,55 +109,6 @@ function ytUrl(artist, song) {
   return "https://www.youtube.com/results?search_query=" + encodeURIComponent(artist + " " + song);
 }
 
-// ─── render: now/next banner ─────────────────────────────────────
-function renderNowNext() {
-  const container = document.getElementById("now-next");
-  if (!isToday(state.date)) { container.innerHTML = ""; return; }
-
-  const perfs = perfsForDate(state.date);
-  const playing = perfs.filter(p => perfStatus(p) === "playing");
-  const upcoming = perfs.filter(p => perfStatus(p) === "upcoming")
-    .sort((a, b) => toMins(a.start) - toMins(b.start));
-
-  let html = "";
-
-  if (playing.length) {
-    html += `<div class="now-next-header">${ICONS.bolt} NOW ON STAGE</div>
-             <div class="now-next-grid">`;
-    playing.forEach(p => {
-      const stg = STAGES[p.stage] || {};
-      html += `<div class="now-next-card" data-perf="${escHtml(perfId(p))}">
-        <div class="now-next-stage-dot" style="background:${stg.color || "#888"}"></div>
-        <div class="now-next-info">
-          <div class="now-next-name">${escHtml(p.name)}</div>
-          <div class="now-next-meta">${escHtml(p.stage)}</div>
-        </div>
-        <div class="now-next-time">LIVE</div>
-      </div>`;
-    });
-    html += "</div>";
-  }
-
-  if (upcoming.length) {
-    html += `<div class="now-next-header next" style="margin-top:${playing.length ? 0 : 0}px">${ICONS.rocket} UP NEXT</div>
-             <div class="now-next-grid next-grid">`;
-    upcoming.slice(0, 6).forEach(p => {
-      const stg = STAGES[p.stage] || {};
-      html += `<div class="now-next-card" data-perf="${escHtml(perfId(p))}">
-        <div class="now-next-stage-dot" style="background:${stg.color || "#888"}"></div>
-        <div class="now-next-info">
-          <div class="now-next-name">${escHtml(p.name)}</div>
-          <div class="now-next-meta">${escHtml(p.stage)}</div>
-        </div>
-        <div class="now-next-time next-time">${fmtTime(p.start)}</div>
-      </div>`;
-    });
-    html += "</div>";
-  }
-
-  container.innerHTML = html ? `<div class="now-next-section">${html}</div>` : "";
-}
-
 // ─── render: stage filter pills ──────────────────────────────────
 function renderFilter() {
   const stages = stagesForDate(state.date);
@@ -672,8 +623,6 @@ function renderAll() {
 function refreshContent() {
   if (state.date === "rolling" || state.date === "upcoming") {
     document.body.classList.add("rolling-view");
-    document.getElementById("now-next").innerHTML = "";
-    
     const targetDate = state.date === "rolling" ? todayStr() : "2026-03-21";
     const activePerfs = getActiveRollingPerfs(targetDate, state.date === "rolling");
 
@@ -689,7 +638,6 @@ function refreshContent() {
   }
   document.body.classList.remove("rolling-view");
   renderFilter();
-  renderNowNext();
   renderMain();
 }
 
